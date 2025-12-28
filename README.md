@@ -24,7 +24,7 @@
 **Institution:** SRM Institute of Science and Technology, Kattankulathur  
 **Program:** UROP 2025-26 | Cybersecurity & Disruptive Technology  
 **Research Guide:** Dr. G. Balamurugan, Associate Professor  
-**Author:** Veeraa Vikash S. | B.Tech CSE (First Year) | **CGPA: 9.88/10.00**  
+**Author:** HARISHLAL M E . | B.Tech CSE (First Year) |  
 **Industrial Experience:** Software Testing Intern, Interain AI
 
 </div>
