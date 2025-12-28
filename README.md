@@ -1022,27 +1022,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 📚 Citation
-
-If you use this work in your research, please cite:
-
-```bibtex
-@misc{veeraa2025cyberbullying,
-  title={BERT-Based Cyberbullying Detection with Comprehensive Evaluation and Model Selection},
-  author={Veeraa Vikash, S.},
-  year={2025},
-  institution={SRM Institute of Science and Technology},
-  note={UROP Research Project, Cybersecurity \& Disruptive Technology},
-  howpublished={\url{https://github.com/VeeraaVikash/cyberbullying-detection}},
-  supervisor={Dr. G. Balamurugan}
-}
-```
-
-**For academic papers:**
-```
-Veeraa Vikash S. (2025). BERT-Based Cyberbullying Detection with Comprehensive 
-Evaluation and Model Selection. Undergraduate Research Project, SRM Institute 
-of Science and Technology. https://github.com/VeeraaVikash/cyberbullying-detection
-```
-
 </div>
