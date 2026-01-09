@@ -1,8 +1,4 @@
-"""
-BERT Cyberbullying Detection - Streamlit Application
-Uses existing trained model from bert_classifier.py
-Author: Veeraa Vikash S.
-"""
+
 
 import streamlit as st
 import torch
@@ -16,16 +12,18 @@ from datetime import datetime
 import time
 
 # Add the project root to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_DIR not in sys.path:
+    sys.path.append(PROJECT_DIR)
 
 # Import your existing bert_classifier
 try:
     from bert_classifier import BERTCyberbullyingClassifier
     CLASSIFIER_AVAILABLE = True
-except ImportError:
+except Exception as e:
     CLASSIFIER_AVAILABLE = False
-    st.error("⚠️ bert_classifier.py not found. Please ensure it's in the same directory.")
+    st.error(f"⚠️ Import failed: {e}")
+    st.write(sys.path)
 
 # Page configuration
 st.set_page_config(
@@ -36,6 +34,8 @@ st.set_page_config(
 )
 
 # Custom CSS
+# Find this section in your code (around line 45-75) and replace the CSS:
+
 st.markdown("""
     <style>
     .main-header {
@@ -67,18 +67,49 @@ st.markdown("""
         opacity: 0.9;
     }
     .prediction-box {
-        padding: 20px;
-        border-radius: 10px;
+        padding: 30px;
+        border-radius: 15px;
         margin: 20px 0;
-        border-left: 5px solid;
+        border: 2px solid;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+    }
+    .prediction-box h2 {
+        margin-top: 0;
+        font-size: 32px;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .prediction-box p {
+        margin: 10px 0;
+        font-size: 18px;
+        font-weight: 500;
     }
     .cyberbullying {
-        background-color: #fee;
-        border-color: #f87171;
+        background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+        border-color: #ef4444 !important;
+    }
+    .cyberbullying h2 {
+        color: #dc2626 !important;
+    }
+    .cyberbullying p {
+        color: #991b1b !important;
+    }
+    .cyberbullying strong {
+        color: #7f1d1d !important;
     }
     .not-cyberbullying {
-        background-color: #efe;
-        border-color: #4ade80;
+        background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+        border-color: #10b981 !important;
+    }
+    .not-cyberbullying h2 {
+        color: #059669 !important;
+    }
+    .not-cyberbullying p {
+        color: #065f46 !important;
+    }
+    .not-cyberbullying strong {
+        color: #064e3b !important;
     }
     .stButton>button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -90,7 +121,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 # Initialize session state
 if 'prediction_history' not in st.session_state:
     st.session_state.prediction_history = []
@@ -99,8 +129,9 @@ if 'classifier' not in st.session_state:
 if 'model_loaded' not in st.session_state:
     st.session_state.model_loaded = False
 
-# Model loading function
-@st.cache_resource
+# Find the load_classifier function (around line 95-120) and replace it:
+
+@st.cache_resource(show_spinner=False)  # This prevents spinner
 def load_classifier():
     """Load your trained BERT classifier from HuggingFace Hub"""
     try:
@@ -109,8 +140,7 @@ def load_classifier():
         repo_id = "VeeraaVikash/bert-cyberbullying-improved"
         filename = "bert_cyberbullying_improved.pth"
 
-        st.info("📥 Downloading model from HuggingFace...")
-
+        # REMOVED st.info message - no more persistent message!
         model_path = hf_hub_download(repo_id=repo_id, filename=filename)
 
         classifier = BERTCyberbullyingClassifier()
@@ -119,14 +149,14 @@ def load_classifier():
         return classifier, True, "Loaded model from HuggingFace Hub"
 
     except Exception as e:
-        st.warning(f"⚠️ Model download failed: {e}")
-        st.info("Using base classifier instead (demo mode).")
-
+        # Silently fall back to base model
         classifier = BERTCyberbullyingClassifier()
         return classifier, True, "Using base model (demo mode)"
 
 
 # Prediction function
+# Find the predict_text function (around line 120-150) and replace it:
+
 def predict_text(text, classifier):
     """Make prediction using your classifier"""
     try:
@@ -138,14 +168,23 @@ def predict_text(text, classifier):
         inference_time = (time.time() - start_time) * 1000
         
         # Parse result from your classifier
-        # Adjust based on what your predict() method returns
+        # The result should be a dict with 'label' and 'confidence'
         if isinstance(result, dict):
-            label = result.get('label', 'Unknown')
-            confidence = result.get('confidence', 0.0) * 100
+            label = str(result.get('label', 'Unknown'))
+            confidence = float(result.get('confidence', 0.0))
+            
+            # If confidence is between 0 and 1, convert to percentage
+            if confidence <= 1.0:
+                confidence = confidence * 100
         else:
-            # If it returns just a label string
-            label = result
+            # If it returns just a label string or number
+            label = str(result)
             confidence = 95.0  # Default confidence
+        
+        # Debug print (remove after testing)
+        print(f"DEBUG - Raw result: {result}")
+        print(f"DEBUG - Parsed label: {label}")
+        print(f"DEBUG - Parsed confidence: {confidence}")
         
         return {
             'label': label,
@@ -154,8 +193,9 @@ def predict_text(text, classifier):
         }
     except Exception as e:
         st.error(f"Prediction error: {str(e)}")
+        import traceback
+        st.error(traceback.format_exc())
         return None
-
 # Sidebar navigation
 st.sidebar.markdown("# 🛡️ Navigation")
 page = st.sidebar.radio(
@@ -164,15 +204,41 @@ page = st.sidebar.radio(
 )
 
 # Load classifier once
+# Find the "Load classifier once" section (around line 180-195) and replace it with:
+
+# Load classifier once - IMPROVED VERSION
+# BETTER APPROACH: Replace the entire model loading section with this:
+
+# Load classifier in background
 if not st.session_state.model_loaded and CLASSIFIER_AVAILABLE:
-    with st.spinner("Loading BERT model... This may take a moment..."):
-        classifier, success, message = load_classifier()
+    # Only show loading if user is NOT on Home page
+    if page != "🏠 Home":
+        with st.spinner("🔄 Loading BERT model... Please wait..."):
+            classifier, success, message = load_classifier()
+            if success:
+                st.session_state.classifier = classifier
+                st.session_state.model_loaded = True
+                st.sidebar.success(f"✅ Model loaded successfully")
+            else:
+                st.sidebar.error("❌ Failed to load model")
+    else:
+        # Load silently in background for Home page
+        classifier, success, message = load_classifier()    
         if success:
             st.session_state.classifier = classifier
             st.session_state.model_loaded = True
-            st.sidebar.success(f"✅ {message}")
+            st.sidebar.success(f"✅ Model ready")
         else:
-            st.sidebar.error("❌ Failed to load model")
+            st.sidebar.warning("⚠️ Loading model...")
+# Alternative: If you want NO loading spinner at all, use this instead:
+# if not st.session_state.model_loaded and CLASSIFIER_AVAILABLE:
+#     classifier, success, message = load_classifier()
+#     if success:
+#         st.session_state.classifier = classifier
+#         st.session_state.model_loaded = True
+#         st.sidebar.success(f"✅ {message}")
+#     else:
+#         st.sidebar.error("❌ Failed to load model")
 
 # ===========================
 # PAGE 1: HOME
@@ -255,39 +321,130 @@ if page == "🏠 Home":
 # ===========================
 # PAGE 2: DETECTION
 # ===========================
+# Find the DETECTION PAGE section (around line 220-290) and replace it with this:
+
+# ===========================
+# PAGE 2: DETECTION (COMPLETE - NO DUPLICATES)
+# ===========================
 elif page == "🔍 Detection":
     st.markdown("# 🔍 Cyberbullying Detection")
-    st.markdown("Enter text to analyze for cyberbullying content")
     
     if not st.session_state.model_loaded:
-        st.error("⚠️ Model not loaded. Please wait or refresh the page.")
+        st.warning("⏳ Model is still loading... Please wait a moment.")
+        if st.button("🔄 Retry Loading Model"):
+            st.rerun()
         st.stop()
+    
+    # Initialize session state
+    if 'show_examples' not in st.session_state:
+        st.session_state.show_examples = None
+    if 'current_text' not in st.session_state:
+        st.session_state.current_text = ""
     
     # Single text analysis
     st.markdown("### 📝 Enter Text to Analyze")
     
+    # Text area with persistent value from session state
     text_input = st.text_area(
         "Input text",
+        value=st.session_state.current_text,
         placeholder="Type or paste the message you want to analyze...",
         height=150,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="text_area_detection"
     )
     
-    # Example texts
-    st.markdown("**Or try these examples:**")
+    # Update session state when user types
+    st.session_state.current_text = text_input
+    
+    # Example texts section
+    st.markdown("**💡 Or try these examples (click to use):**")
+    
     example_col1, example_col2, example_col3 = st.columns(3)
     
     with example_col1:
-        if st.button("Direct Insult Example"):
-            text_input = "You're so stupid and worthless"
+        if st.button("🔴 Direct Insult Examples", use_container_width=True, key="btn_insult"):
+            if st.session_state.show_examples == 'insult':
+                st.session_state.show_examples = None
+            else:
+                st.session_state.show_examples = 'insult'
+            st.rerun()
     
     with example_col2:
-        if st.button("Sarcasm Example"):
-            text_input = "Wow you're SO smart 🙄"
+        if st.button("🟣 Sarcasm Examples", use_container_width=True, key="btn_sarcasm"):
+            if st.session_state.show_examples == 'sarcasm':
+                st.session_state.show_examples = None
+            else:
+                st.session_state.show_examples = 'sarcasm'
+            st.rerun()
     
     with example_col3:
-        if st.button("Normal Text Example"):
-            text_input = "This is a great project! Keep up the good work"
+        if st.button("🔵 Normal Text Examples", use_container_width=True, key="btn_normal"):
+            if st.session_state.show_examples == 'normal':
+                st.session_state.show_examples = None
+            else:
+                st.session_state.show_examples = 'normal'
+            st.rerun()
+    
+    # Show examples directly below buttons
+    if st.session_state.show_examples == 'insult':
+        st.info("👇 Click any example below to use it")
+        examples = [
+            "You are so stupid, you can't do anything right.",
+            "Nobody likes you because you're annoying.",
+            "You're a complete failure.",
+            "You're useless and a waste of time."
+        ]
+        col1, col2 = st.columns(2)
+        for i, example in enumerate(examples):
+            with col1 if i % 2 == 0 else col2:
+                button_label = f"📝 {example[:35]}..." if len(example) > 35 else f"📝 {example}"
+                if st.button(button_label, 
+                           key=f"use_insult_{i}", 
+                           use_container_width=True,
+                           help=example):
+                    st.session_state.current_text = example
+                    st.session_state.show_examples = None
+                    st.rerun()
+    
+    elif st.session_state.show_examples == 'sarcasm':
+        st.info("👇 Click any example below to use it")
+        examples = [
+            "Wow, great job messing that up 👏",
+            "Nice work, Einstein.",
+            "Of course you would forget that.",
+            "Yeah, you're clearly the smartest person here."
+        ]
+        col1, col2 = st.columns(2)
+        for i, example in enumerate(examples):
+            with col1 if i % 2 == 0 else col2:
+                if st.button(f"📝 {example}", 
+                           key=f"use_sarcasm_{i}", 
+                           use_container_width=True,
+                           help=example):
+                    st.session_state.current_text = example
+                    st.session_state.show_examples = None
+                    st.rerun()
+    
+    elif st.session_state.show_examples == 'normal':
+        st.info("👇 Click any example below to use it")
+        examples = [
+            "Can you please submit the assignment today?",
+            "I didn't understand this part, can you explain?",
+            "Let's work together to solve this problem.",
+            "The meeting has been rescheduled to tomorrow."
+        ]
+        col1, col2 = st.columns(2)
+        for i, example in enumerate(examples):
+            with col1 if i % 2 == 0 else col2:
+                button_label = f"📝 {example[:35]}..." if len(example) > 35 else f"📝 {example}"
+                if st.button(button_label, 
+                           key=f"use_normal_{i}", 
+                           use_container_width=True,
+                           help=example):
+                    st.session_state.current_text = example
+                    st.session_state.show_examples = None
+                    st.rerun()
     
     st.markdown("---")
     
@@ -313,7 +470,10 @@ elif page == "🔍 Detection":
                 st.markdown("### 📊 Analysis Results")
                 
                 # Determine if cyberbullying
-                is_cyberbullying = "cyberbullying" in result['label'].lower() or result['label'] == "1"
+                label_lower = str(result['label']).lower().strip()
+                is_cyberbullying = 'cyberbullying' in label_lower or label_lower == '1'
+                if 'not' in label_lower:
+                    is_cyberbullying = False
                 
                 box_class = "cyberbullying" if is_cyberbullying else "not-cyberbullying"
                 display_label = "Cyberbullying" if is_cyberbullying else "Not Cyberbullying"
@@ -322,18 +482,23 @@ elif page == "🔍 Detection":
                 st.markdown(f"""
                 <div class="prediction-box {box_class}">
                     <h2>{icon} {display_label}</h2>
-                    <p style="font-size: 18px;">Confidence: <strong>{result['confidence']:.2f}%</strong></p>
-                    <p style="font-size: 14px;">Inference Time: {result['inference_time']:.2f}ms</p>
+                    <p><strong>Confidence:</strong> {result['confidence']:.2f}%</p>
+                    <p><strong>Inference Time:</strong> {result['inference_time']:.2f}ms</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 # Show input analysis
-                st.markdown("#### 📝 Input Text Analysis")
+                st.markdown("#### 🔍 Input Text Analysis")
                 st.info(f"**Text:** {text_input}")
                 st.info(f"**Length:** {len(text_input)} characters | **Words:** {len(text_input.split())} words")
     
     elif predict_button and not text_input:
         st.warning("⚠️ Please enter text to analyze")
+# ===========================
+# PAGE 3: STATISTICS
+# ===========================
+# Find the Statistics page section (around line 370-450)
+# Look for this part that counts predictions:
 
 # ===========================
 # PAGE 3: STATISTICS
@@ -342,7 +507,7 @@ elif page == "📊 Statistics":
     st.markdown("# 📊 Usage Statistics")
     
     if not st.session_state.prediction_history:
-        st.info("📝 No predictions yet. Go to the Detection page to analyze some text!")
+        st.info("🔍 No predictions yet. Go to the Detection page to analyze some text!")
     else:
         # Summary metrics
         st.markdown("### 📈 Summary")
@@ -350,8 +515,19 @@ elif page == "📊 Statistics":
         col1, col2, col3, col4 = st.columns(4)
         
         total_predictions = len(st.session_state.prediction_history)
-        cb_count = sum(1 for p in st.session_state.prediction_history 
-                      if "cyberbullying" in p['label'].lower() or p['label'] == "1")
+        
+        # FIXED: Better counting logic
+        cb_count = 0
+        for p in st.session_state.prediction_history:
+            label_lower = str(p['label']).lower().strip()
+            # Check if it's cyberbullying
+            is_cb = 'cyberbullying' in label_lower or label_lower == '1'
+            # If it says "not", it's NOT cyberbullying
+            if 'not' in label_lower:
+                is_cb = False
+            if is_cb:
+                cb_count += 1
+        
         not_cb_count = total_predictions - cb_count
         avg_confidence = sum(p['confidence'] for p in st.session_state.prediction_history) / total_predictions
         
@@ -412,7 +588,6 @@ elif page == "📊 Statistics":
         if st.button("🗑️ Clear History"):
             st.session_state.prediction_history = []
             st.rerun()
-
 # ===========================
 # PAGE 4: PERFORMANCE
 # ===========================
@@ -462,12 +637,17 @@ elif page == "ℹ️ About":
     ## 🎓 Project Information
     
     **Project:** BERT-Based Cyberbullying Detection System  
-    **Author:** Veeraa Vikash S.  
     **Institution:** SRM Institute of Science and Technology  
-    **Year:** Second Year, Computer Science Engineering  
-    **CGPA:** 9.88/10.00
+    **Department:** Computer Science and Engineering (CSE – Core)  
+    **Year:** Second Year  
+    
+    **Developed By:**  
+    - Harishlal  
+    - Veera Vikash  
     
     ---
+    
+
     
     ## 🎯 Project Overview
     
@@ -485,10 +665,6 @@ elif page == "ℹ️ About":
     
     ---
     
-    ## 📧 Contact
-    
-    **Email:** vs7645@srmist.edu.in  
-    **Phone:** +91-9677138725
     
     ---
     
