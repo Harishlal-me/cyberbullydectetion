@@ -151,3 +151,35 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("✓ BERT Classifier working correctly!")
+# ============================
+# Wrapper class for Streamlit
+# ============================
+
+class BERTCyberbullyingClassifier:
+    def __init__(self, model_name='bert-base-uncased'):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = BERTClassifier(model_name=model_name)
+        self.model.to(self.device)
+        self.model.eval()
+        self.tokenizer = get_tokenizer(model_name)
+
+    def load_model(self, model_path):
+        state_dict = torch.load(model_path, map_location=self.device)
+        self.model.load_state_dict(state_dict)
+        self.model.eval()
+
+    def predict(self, text):
+        encoding = tokenize_text(text, self.tokenizer)
+        input_ids = encoding["input_ids"].to(self.device)
+        attention_mask = encoding["attention_mask"].to(self.device)
+
+        with torch.no_grad():
+            logits = self.model(input_ids, attention_mask)
+            probs = torch.softmax(logits, dim=1)
+            pred = torch.argmax(probs, dim=1).item()
+            confidence = probs[0][pred].item()
+
+        return {
+            "label": "Cyberbullying" if pred == 1 else "Not Cyberbullying",
+            "confidence": confidence
+        }
